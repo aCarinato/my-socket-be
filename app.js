@@ -1,7 +1,7 @@
 import express from 'express';
 import 'dotenv/config';
 import { createServer } from 'http';
-// import { Server } from 'socket.io'; // TEST socket on vercel
+import { Server } from 'socket.io'; // TEST socket on vercel
 
 import connectDB from './helper/db/db.js';
 // routes
@@ -14,7 +14,7 @@ connectDB();
 const app = express();
 
 const httpServer = createServer(app);
-// const io = new Server(httpServer, { cors: { origin: '*' } }); // TEST socket on vercel
+const io = new Server(httpServer, { cors: { origin: '*' } }); // TEST socket on vercel
 
 // const io = new Server(httpServer, {
 //   cors: {
