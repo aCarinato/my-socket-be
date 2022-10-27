@@ -4,10 +4,21 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 
 import connectDB from './helper/db/db.js';
-// routes
+// API routes
 import auth from './routes/auth.js';
-// controllers
-import { addUser, removeUserOnLeave, removeUser } from './controllers/room.js';
+import chats from './routes/chats.js';
+// socket controllers
+import {
+  addUser,
+  removeUserOnLeave,
+  removeUser,
+  findConnectedUser,
+} from './controllers/room.js';
+import {
+  loadMessages,
+  sendMsg,
+  setMsgToUnread,
+} from './controllers/messages.js';
 
 connectDB();
 
@@ -15,14 +26,6 @@ const app = express();
 
 const httpServer = createServer(app);
 const io = new Server(httpServer, { cors: { origin: '*' } }); // TEST socket on vercel
-
-// const io = new Server(httpServer, {
-//   cors: {
-//     origin: 'http://localhost:3000/',
-//     methods: ['GET', 'POST'],
-//     allowedHeaders: ['Content-type'],
-//   },
-// });
 
 io.on('connection', (socket) => {
   socket.on('join', async ({ userId }) => {
@@ -36,21 +39,36 @@ io.on('connection', (socket) => {
     }, 10000);
   });
 
+  socket.on('loadMessages', async ({ userId, messagesWith }) => {
+    const { chat, error } = await loadMessages(userId, messagesWith);
+
+    !error
+      ? socket.emit('messagesLoaded', { chat })
+      : socket.emit('noChatFound');
+  });
+
+  socket.on('sendNewMsg', async ({ userId, msgSendToUserId, msg }) => {
+    const { newMsg, error } = await sendMsg(userId, msgSendToUserId, msg);
+
+    // Check if the receiver is online
+    const receiverSocket = findConnectedUser(msgSendToUserId);
+
+    if (receiverSocket) {
+      // the receiver is online
+      // WHEN YOU WANT TO SEND MESSAGE TO A PARTICULAR SOCKET
+      io.to(receiverSocket.socketId).emit('newMsgReceived', { newMsg });
+    }
+    //
+    else {
+      await setMsgToUnread(msgSendToUserId);
+    }
+
+    !error && socket.emit('msgSent', { newMsg });
+  });
+
   socket.on('leave', async ({ userId }) => {
     const users = await removeUserOnLeave(userId, socket.id);
   });
-
-  // socket.on('disconnect', () => {
-  //   removeUser(socket.id);
-  // });
-
-  // socket.on('msgSent', ({ arg1, arg2 }) => {
-  //   console.log({ arg1, arg2 });
-
-  //   socket.emit('msgReceived', {
-  //     msg: `hi! I received a msg with 2 args: ${arg1} and ${arg2}`,
-  //   });
-  // });
 
   socket.on('sendMsg', (msg) => {
     // console.log('Msg received through socket: ' + msg);
@@ -77,5 +95,6 @@ app.use((req, res, next) => {
 });
 
 app.use('/api/auth', auth);
+app.use('/api/chats', chats);
 
 httpServer.listen(port, () => console.log(`Server running on port ${port}`));

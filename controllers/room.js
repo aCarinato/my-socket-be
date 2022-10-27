@@ -40,5 +40,6 @@ export const removeUserOnLeave = async (userId, socketId) => {
   }
 };
 
+// find out if the user the message receiver is online (when the message is sent)
 export const findConnectedUser = (userId) =>
   users.find((user) => user.userId === userId);

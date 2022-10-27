@@ -54,6 +54,8 @@ const addField = async () => {
         // },
       }
     );
+    // https://www.mongodb.com/docs/manual/reference/operator/query/ne/
+    // db.inventory.updateMany( { "carrier.fee": { $ne: 1 } }, { $set: { "price": 9.99 } } )
 
     // await User.aggregate([
     //   { $addFields: { testField: { type: String, default: 'testone' } } },
