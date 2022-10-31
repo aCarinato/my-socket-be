@@ -1,5 +1,6 @@
 import Chat from '../models/Chat.js';
 import User from '../models/User.js';
+import Notification from '../models/Notification.js';
 
 // GET ALL CHATS FOR A USER
 
@@ -118,6 +119,20 @@ export const setUnreadMsgToRead = async (req, res) => {
     }
 
     res.sendStatus(200);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).send(`Server error`);
+  }
+};
+
+// @desc    Get notifications for the user
+// @route   GET /api/admin/current-admin
+// @access  Private
+export const getNotifications = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const userNotifications = await Notification.findOne({ user: userId });
+    return res.json(userNotifications.notifications);
   } catch (error) {
     console.error(error);
     return res.status(500).send(`Server error`);

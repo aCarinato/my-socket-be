@@ -9,6 +9,7 @@ import auth from './routes/auth.js';
 import chats from './routes/chats.js';
 // socket controllers
 import {
+  getUsers,
   addUser,
   removeUserOnLeave,
   removeUser,
@@ -18,6 +19,8 @@ import {
   loadMessages,
   sendMsg,
   setMsgToUnread,
+  setNotification,
+  readNotification,
 } from './controllers/messages.js';
 
 connectDB();
@@ -39,6 +42,25 @@ io.on('connection', (socket) => {
     }, 10000);
   });
 
+  socket.on('disconnect', async () => {
+    // console.log('ciao ciao');
+    // const users = await addUser(userId, socket.id);
+    // console.log(socket.id);
+    // socket.disconnect();
+    // console.log('PRIMA');
+    const testone = getUsers();
+    // console.log(testone);
+    const incriminato = testone.filter((user) => user.socketId === socket.id);
+    if (incriminato !== undefined && incriminato.length > 0) {
+      const incriminatoId = incriminato[0].userId;
+      // console.log('incriminato.userId; ', incriminatoId);
+      // console.log('DOPO');
+      const newUsers = await removeUserOnLeave(incriminatoId, socket.id);
+      // const testone2 = getUsers();
+      // console.log(newUsers);
+    }
+  });
+
   socket.on('loadMessages', async ({ userId, messagesWith }) => {
     const { chat, error } = await loadMessages(userId, messagesWith);
 
@@ -48,28 +70,50 @@ io.on('connection', (socket) => {
   });
 
   socket.on('sendNewMsg', async ({ userId, msgSendToUserId, msg }) => {
+    // WOULD BE BETTER: socket.on('sendNewMsg', async ({ senderId, receiverId, msg }) => {
+
+    // create a new message and store it in the database for the sender and receiver (Chat.js)
     const { newMsg, error } = await sendMsg(userId, msgSendToUserId, msg);
 
     // Check if the receiver is online
     const receiverSocket = findConnectedUser(msgSendToUserId);
+    console.log(receiverSocket);
 
     if (receiverSocket) {
       // the receiver is online
       // WHEN YOU WANT TO SEND MESSAGE TO A PARTICULAR SOCKET
       io.to(receiverSocket.socketId).emit('newMsgReceived', { newMsg });
+
+      // (maybe) i need to put a notification here when the receiver is not on the router message with the sender
+      // socket.on('newNotification')
     }
     //
     else {
-      await setMsgToUnread(msgSendToUserId);
+      await setMsgToUnread(userId, msgSendToUserId);
+      // here i should also set a notification
+      // const { newNotification } =
+      await setNotification(userId, msgSendToUserId);
     }
 
     !error && socket.emit('msgSent', { newMsg });
+    // socket.emit('notificationSent');
+  });
+
+  socket.on('sendNotification', async ({ senderId, receiverId }) => {
+    // console.log(`senderId: ${senderId} receiverId: ${receiverId}`);
+    await setNotification(senderId, receiverId);
+  });
+
+  socket.on('readNotification', async ({ notificationTo, msgFrom }) => {
+    console.log(`notificationTo: ${notificationTo} msgFrom: ${msgFrom}`);
+    await readNotification(notificationTo, msgFrom);
   });
 
   socket.on('leave', async ({ userId }) => {
     const users = await removeUserOnLeave(userId, socket.id);
   });
 
+  // THIS IS IS FOR THE SIMPLE CHAT IN INDEX.JS
   socket.on('sendMsg', (msg) => {
     // console.log('Msg received through socket: ' + msg);
     io.emit('sendMsg', msg);

@@ -1,5 +1,6 @@
 import User from '../models/User.js';
 import Chat from '../models/Chat.js';
+import Notification from '../models/Notification.js';
 
 // @desc    Login user
 // @route   POST /api/auth/login
@@ -45,6 +46,16 @@ export const login = async (req, res) => {
   const chatModel = await Chat.findOne({ user: existingUser._id });
   if (!chatModel) {
     await new Chat({ user: existingUser._id, chats: [] }).save();
+  }
+
+  const notificationModel = await Notification.findOne({
+    user: existingUser._id,
+  });
+  if (!notificationModel) {
+    await new Notification({
+      user: existingUser._id,
+      notifications: [],
+    }).save();
   }
 
   res.status(201).json({

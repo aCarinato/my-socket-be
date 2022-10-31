@@ -1,5 +1,9 @@
 const users = [];
 
+export const getUsers = () => {
+  return users;
+};
+
 export const addUser = async (userId, socketId) => {
   const user = users.find((user) => user.userId === userId);
 
@@ -27,11 +31,19 @@ export const removeUser = async (socketId) => {
 
   users.splice(indexOf, 1);
 
+  // console.log('from inside removeUser');
+  // console.log(users);
+  // console.log('---------');
   return;
 };
 
 export const removeUserOnLeave = async (userId, socketId) => {
+  // console.log(`userId ${userId}, socketId: ${socketId}`);
   const user = users.find((user) => user.userId === userId);
+
+  // console.log('from inside removeUserOnLeave');
+  // console.log(user);
+  // console.log('---------');
 
   if (user && user.socketId === socketId) {
     // the user is already there, so it has to be removed
@@ -40,6 +52,7 @@ export const removeUserOnLeave = async (userId, socketId) => {
   }
 };
 
-// find out if the user the message receiver is online (when the message is sent)
+// find out if the message receiver is online (when the message is sent)
+// it doesn't necessarily mean that he is in the message url with the sender (openChatId.current)
 export const findConnectedUser = (userId) =>
   users.find((user) => user.userId === userId);
